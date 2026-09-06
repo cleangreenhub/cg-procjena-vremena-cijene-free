@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f1f1f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Clean Green · Procjena poslovnog prostora</title>
+<style>
+  :root{
+    --bg:#f7f3ea; --card:#fffdf8; --text:#252525; --muted:#6d6a63; --line:#ddd5c8;
+    --gold:#b99a5b; --dark:#1f1f1f; --soft:#eee7da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:760px;margin:auto;padding:16px 14px 80px}
+  .hero{padding:20px 2px 10px}
+  .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  h1{font-size:27px;line-height:1.1;margin:8px 0}
+  .sub{color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 3px 14px rgba(0,0,0,.03)}
+  h2{font-size:18px;margin:0 0 12px}
+  label{display:block;font-size:13px;font-weight:650;margin:12px 0 6px}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 13px;font:inherit;color:var(--text);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  textarea{min-height:82px;resize:vertical}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .checkgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .check{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:10px 11px;font-size:13px}
+  .check input{width:auto;margin:0}
+  .room{border:1px dashed #cfc4b1;border-radius:14px;padding:13px;margin:12px 0;background:#fff}
+  .roomhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .roomhead strong{font-size:15px}
+  button{border:0;border-radius:12px;padding:13px 15px;font:inherit;font-weight:700;cursor:pointer}
+  .primary{background:var(--dark);color:#fff;width:100%}
+  .secondary{background:var(--soft);color:var(--text)}
+  .danger{background:#f2e2df;color:#74342a;padding:8px 10px;font-size:12px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .summary{background:var(--dark);color:#fff}
+  .summary .big{font-size:26px;font-weight:800;margin:4px 0}
+  .muted{color:var(--muted);font-size:12px}
+  .summary .muted{color:#c9c9c9}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;display:none;z-index:5}
+  @media(max-width:560px){.grid,.checkgrid,.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Clean Green · Terenska procjena</div>
+    <h1>Procjena poslovnog prostora</h1>
+    <div class="sub">Mobilni zapisnik za obilazak, procjenu opsega rada i pripremu ponude.</div>
+  </div>
+
+  <div class="card">
+    <h2>1. Osnovni podaci</h2>
+    <label>Naziv objekta</label>
+    <input id="objekt" placeholder="npr. Klinika / poslovni prostor / salon">
+    <div class="grid">
+      <div><label>Datum obilaska</label><input id="datum" type="date"></div>
+      <div><label>Kontakt osoba</label><input id="kontakt" placeholder="Ime i prezime"></div>
+    </div>
+    <label>Adresa</label><input id="adresa" placeholder="Adresa objekta">
+    <div class="grid">
+      <div><label>Ukupna procjena m²</label><input id="m2" type="number" min="0" step="1"></div>
+      <div><label>Broj etaža</label><input id="etaze" type="number" min="1" step="1" value="1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Učestalost i organizacija</h2>
+    <div class="grid">
+      <div><label>Dolazaka tjedno</label><input id="dolazaka" type="number" min="0" step="1" value="3"></div>
+      <div><label>Željeno vrijeme rada</label><input id="termin" placeholder="npr. nakon 16 h"></div>
+    </div>
+    <label>Minimalno / očekivano trajanje po dolasku</label>
+    <input id="mintrajanje" placeholder="npr. min. 2 h">
+    <label>Napomena o pristupu, ključevima, alarmu, parkingu</label>
+    <textarea id="pristup"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>3. Prostori</h2>
+    <div id="rooms"></div>
+    <button class="secondary" style="width:100%" onclick="addRoom()">+ Dodaj prostor</button>
+  </div>
+
+  <div class="card">
+    <h2>4. Opseg usluge</h2>
+    <div class="checkgrid">
+      <label class="check"><input type="checkbox" class="scope" value="Podovi"> Podovi</label>
+      <label class="check"><input type="checkbox" class="scope" value="Prašina i površine"> Prašina i površine</label>
+      <label class="check"><input type="checkbox" class="scope" value="Sanitarije"> Sanitarije</label>
+      <label class="check"><input type="checkbox" class="scope" value="Koševi i otpad"> Koševi i otpad</label>
+      <label class="check"><input type="checkbox" class="scope" value="Kuhinja/kantina"> Kuhinja / kantina</label>
+      <label class="check"><input type="checkbox" class="scope" value="Staklene površine"> Staklene površine</label>
+      <label class="check"><input type="checkbox" class="scope" value="Vrata i kvake"> Vrata i kvake</label>
+      <label class="check"><input type="checkbox" class="scope" value="Dopuna potrošnog materijala"> Dopuna potrošnog materijala</label>
+    </div>
+    <label>Dodatni zahtjevi</label><textarea id="dodatni"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>5. Otežavajući faktori</h2>
+    <div class="checkgrid">
+      <label class="check"><input type="checkbox" class="factor" value="Puno namještaja"> Puno namještaja</label>
+      <label class="check"><input type="checkbox" class="factor" value="Velik promet ljudi"> Velik promet ljudi</label>
+      <label class="check"><input type="checkbox" class="factor" value="Stubišta"> Stubišta</label>
+      <label class="check"><input type="checkbox" class="factor" value="Teško dostupne površine"> Teško dostupne površine</label>
+      <label class="check"><input type="checkbox" class="factor" value="Osjetljive površine"> Osjetljive površine</label>
+      <label class="check"><input type="checkbox" class="factor" value="Puno stakla"> Puno stakla</label>
+    </div>
+    <label>Ostalo</label><textarea id="faktori"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>6. Oprema i logistika</h2>
+    <label>Postoji li prostor za opremu i sredstva?</label>
+    <select id="skladiste"><option value="">Odaberi</option><option>Da</option><option>Ne</option><option>Djelomično</option></select>
+    <label>Voda / sudoper dostupni za rad?</label>
+    <select id="voda"><option value="">Odaberi</option><option>Da</option><option>Ne</option><option>Djelomično</option></select>
+    <label>Potrebna posebna oprema / sredstva</label><textarea id="oprema"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>7. Završna procjena</h2>
+    <div class="grid">
+      <div><label>Procjena minuta po dolasku</label><input id="minute" type="number" min="0" step="5" oninput="calc()"></div>
+      <div><label>Priprema + put po dolasku (min)</label><input id="realextra" type="number" min="0" step="5" value="0" oninput="calc()"></div>
+    </div>
+    <div class="grid">
+      <div><label>Broj radnika</label><input id="radnika" type="number" min="1" step="1" value="1"></div>
+      <div><label>Predložena satnica €</label><input id="satnica" type="number" min="0" step="0.5" value="20" oninput="calc()"></div>
+    </div>
+    <label>Terenska napomena / zaključak</label><textarea id="zakljucak"></textarea>
+  </div>
+
+  <div class="card summary">
+    <div class="muted">Procijenjeni real time po dolasku</div>
+    <div id="realTime" class="big">0 h 00 min</div>
+    <div class="muted">Procijenjeni mjesečni real time</div>
+    <div id="monthTime" class="big">0 h</div>
+    <div class="muted">Orijentacijska mjesečna vrijednost prema unesenoj satnici</div>
+    <div id="monthValue" class="big">0,00 €</div>
+  </div>
+
+  <div class="card">
+    <button class="primary" onclick="saveForm()">Spremi procjenu na uređaj</button>
+    <div class="actions">
+      <button class="secondary" onclick="exportJSON()">Izvezi JSON</button>
+      <button class="secondary" onclick="exportCSV()">Izvezi CSV</button>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="window.print()">Spremi kao PDF</button>
+      <button class="secondary" onclick="showSaved()">Spremljene procjene</button>
+    </div>
+    <div id="savedList" style="display:none;margin-top:12px"></div>
+    <div class="actions">
+      <button class="secondary" onclick="loadLatest()">Učitaj zadnju</button>
+      <button class="danger" onclick="clearForm()">Očisti obrazac</button>
+    </div>
+    <p class="muted">Procjene se spremaju lokalno u pregledniku ovog uređaja. Za arhivu ili prijenos na drugi uređaj izvezi JSON, CSV ili PDF.</p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let roomCount=0;
+const roomTypes=["Ured","Sanitarni čvor","Kuhinja / kantina","Hodnik","Stubište","Dvorana / sala","Zajednička prostorija","Skladište","Ulaz / recepcija","Ostalo"];
+
+function toast(t){let el=document.getElementById('toast');el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',1800)}
+
+function addRoom(data={}){
+  roomCount++;
+  const box=document.createElement('div');
+  box.className='room';
+  box.innerHTML=`
+    <div class="roomhead"><strong>Prostor ${roomCount}</strong><button class="danger" type="button" onclick="this.closest('.room').remove()">Ukloni</button></div>
+    <label>Vrsta prostora</label>
+    <select class="rtype">${roomTypes.map(x=>`<option ${data.type===x?'selected':''}>${x}</option>`).join('')}</select>
+    <div class="grid">
+      <div><label>Broj prostorija</label><input class="rcount" type="number" min="1" value="${data.count||1}"></div>
+      <div><label>Procjena m²</label><input class="rm2" type="number" min="0" value="${data.m2||''}"></div>
+    </div>
+    <label>Podna obloga</label><input class="rfloor" value="${data.floor||''}" placeholder="pločice, parket, tepih...">
+    <label>Što se ovdje čisti / posebnosti</label><textarea class="rnotes">${data.notes||''}</textarea>
+    <label>Procjena vremena za ovaj prostor (min)</label><input class="rminutes" type="number" min="0" step="5" value="${data.minutes||''}">
+  `;
+  document.getElementById('rooms').appendChild(box);
+}
+function getRooms(){
+  return [...document.querySelectorAll('.room')].map(r=>({
+    type:r.querySelector('.rtype').value,
+    count:r.querySelector('.rcount').value,
+    m2:r.querySelector('.rm2').value,
+    floor:r.querySelector('.rfloor').value,
+    notes:r.querySelector('.rnotes').value,
+    minutes:r.querySelector('.rminutes').value
+  }));
+}
+function checked(cls){return [...document.querySelectorAll(cls+':checked')].map(x=>x.value)}
+function val(id){return document.getElementById(id).value}
+function data(){
+  return {
+    objekt:val('objekt'), datum:val('datum'), kontakt:val('kontakt'), adresa:val('adresa'), m2:val('m2'), etaze:val('etaze'),
+    dolazaka:val('dolazaka'), termin:val('termin'), mintrajanje:val('mintrajanje'), pristup:val('pristup'),
+    rooms:getRooms(), scope:checked('.scope'), dodatni:val('dodatni'), factors:checked('.factor'), faktori:val('faktori'),
+    skladiste:val('skladiste'), voda:val('voda'), oprema:val('oprema'),
+    minute:val('minute'), realextra:val('realextra'), radnika:val('radnika'), satnica:val('satnica'), zakljucak:val('zakljucak'),
+    savedAt:new Date().toISOString()
+  }
+}
+function allSaved(){ try{return JSON.parse(localStorage.getItem('cg_procjene')||'[]')}catch(e){return []} }
+function saveForm(){
+  const d=data();
+  const list=allSaved();
+  d.id='cg_'+Date.now();
+  list.unshift(d);
+  localStorage.setItem('cg_procjene',JSON.stringify(list.slice(0,100)));
+  localStorage.setItem('cg_procjena_latest',JSON.stringify(d));
+  toast('Procjena spremljena');
+  showSaved(true);
+}
+function applyData(d){
+  for(const id of ['objekt','datum','kontakt','adresa','m2','etaze','dolazaka','termin','mintrajanje','pristup','dodatni','faktori','skladiste','voda','oprema','minute','realextra','radnika','satnica','zakljucak']){
+    if(d[id]!==undefined) document.getElementById(id).value=d[id];
+  }
+  document.querySelectorAll('.scope').forEach(x=>x.checked=(d.scope||[]).includes(x.value));
+  document.querySelectorAll('.factor').forEach(x=>x.checked=(d.factors||[]).includes(x.value));
+  document.getElementById('rooms').innerHTML=''; roomCount=0; (d.rooms||[]).forEach(addRoom); calc(); toast('Procjena učitana');
+}
+function loadLatest(){
+  const raw=localStorage.getItem('cg_procjena_latest'); if(!raw){toast('Nema spremljenih procjena');return}
+  applyData(JSON.parse(raw));
+}
+function loadSaved(id){
+  const d=allSaved().find(x=>x.id===id); if(d) applyData(d);
+}
+function deleteSaved(id){
+  const list=allSaved().filter(x=>x.id!==id);
+  localStorage.setItem('cg_procjene',JSON.stringify(list));
+  showSaved(true); toast('Spremljena procjena obrisana');
+}
+function showSaved(force){
+  const el=document.getElementById('savedList');
+  if(!force && el.style.display!=='none'){el.style.display='none';return}
+  const list=allSaved();
+  el.style.display='block';
+  if(!list.length){el.innerHTML='<div class="muted">Još nema spremljenih procjena.</div>';return}
+  el.innerHTML=list.map(d=>`<div style="border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;gap:8px;align-items:center">
+    <div><strong>${(d.objekt||'Bez naziva')}</strong><div class="muted">${d.datum||''} · ${d.m2||'?'} m²</div></div>
+    <div style="display:flex;gap:6px"><button class="secondary" style="padding:8px 10px;font-size:12px" onclick="loadSaved('${d.id}')">Otvori</button><button class="danger" onclick="deleteSaved('${d.id}')">Obriši</button></div>
+  </div>`).join('');
+}
+function clearForm(){if(confirm('Očistiti trenutno unesene podatke?')){location.reload()}}
+function downloadText(text,type,filename){
+  const blob=new Blob([text],{type}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function safeName(s){return (s||'objekt').replace(/[^a-z0-9čćžšđ]+/gi,'-').replace(/^-+|-+$/g,'')}
+function exportJSON(){
+  const d=data(); downloadText(JSON.stringify(d,null,2),'application/json','CG-procjena-'+safeName(d.objekt)+'.json')
+}
+function csvEscape(v){v=(v??'').toString(); return '"'+v.replace(/"/g,'""')+'"'}
+function exportCSV(){
+  const d=data();
+  const rows=[
+    ['Polje','Vrijednost'],
+    ['Objekt',d.objekt],['Datum',d.datum],['Kontakt',d.kontakt],['Adresa',d.adresa],['Ukupno m²',d.m2],
+    ['Etaže',d.etaze],['Dolazaka tjedno',d.dolazaka],['Termin',d.termin],['Minimalno trajanje',d.mintrajanje],
+    ['Opseg usluge',(d.scope||[]).join('; ')],['Otežavajući faktori',(d.factors||[]).join('; ')],
+    ['Procjena minuta',d.minute],['Priprema + put min',d.realextra],['Broj radnika',d.radnika],['Satnica €',d.satnica],
+    ['Zaključak',d.zakljucak],[],['PROSTORI',''],
+    ...d.rooms.flatMap((r,i)=>[
+      ['Prostor '+(i+1)+' - vrsta',r.type],['Broj prostorija',r.count],['m²',r.m2],['Pod',r.floor],['Posebnosti',r.notes],['Minute',r.minutes]
+    ])
+  ];
+  downloadText('\uFEFF'+rows.map(r=>r.map(csvEscape).join(';')).join('\n'),'text/csv;charset=utf-8','CG-procjena-'+safeName(d.objekt)+'.csv')
+}
+function calc(){
+  const mins=(parseFloat(val('minute'))||0)+(parseFloat(val('realextra'))||0);
+  const visits=parseFloat(val('dolazaka'))||0;
+  const monthlyHours=(mins/60)*visits*4.33;
+  const rate=parseFloat(val('satnica'))||0;
+  document.getElementById('realTime').textContent=Math.floor(mins/60)+' h '+String(Math.round(mins%60)).padStart(2,'0')+' min';
+  document.getElementById('monthTime').textContent=monthlyHours.toFixed(1).replace('.',',')+' h';
+  document.getElementById('monthValue').textContent=(monthlyHours*rate).toLocaleString('hr-HR',{style:'currency',currency:'EUR'});
+}
+document.getElementById('datum').valueAsDate=new Date();
+addRoom({type:"Ured"}); addRoom({type:"Sanitarni čvor"}); calc();
+</script>
+</body>
+</html>
