@@ -143,6 +143,10 @@
     <div id="monthTime" class="big">0 h</div>
     <div class="muted">Orijentacijska mjesečna vrijednost prema unesenoj satnici</div>
     <div id="monthValue" class="big">0,00 €</div>
+    <div class="grid" style="margin-top:12px">
+      <div><div class="muted">Ukupno kanti</div><div id="binTotal" style="font-size:18px;font-weight:800">0</div></div>
+      <div><div class="muted">Ukupno prozora</div><div id="windowTotal" style="font-size:18px;font-weight:800">0</div></div>
+    </div>
   </div>
 
   <div class="card">
@@ -152,13 +156,16 @@
       <button class="secondary" onclick="exportCSV()">Izvezi CSV</button>
     </div>
     <div class="actions">
+      <button class="secondary" onclick="shareByEmail()">Pošalji mailom</button>
       <button class="secondary" onclick="window.print()">Spremi kao PDF</button>
+    </div>
+    <div class="actions">
       <button class="secondary" onclick="showSaved()">Spremljene procjene</button>
+      <button class="secondary" onclick="loadLatest()">Učitaj zadnju</button>
     </div>
     <div id="savedList" style="display:none;margin-top:12px"></div>
     <div class="actions">
-      <button class="secondary" onclick="loadLatest()">Učitaj zadnju</button>
-      <button class="danger" onclick="clearForm()">Očisti obrazac</button>
+      <button class="danger" style="grid-column:1/-1" onclick="clearForm()">Očisti obrazac</button>
     </div>
     <p class="muted">Procjene se spremaju lokalno u pregledniku ovog uređaja. Za arhivu ili prijenos na drugi uređaj izvezi JSON, CSV ili PDF.</p>
   </div>
@@ -177,28 +184,40 @@ function addRoom(data={}){
   const box=document.createElement('div');
   box.className='room';
   box.innerHTML=`
-    <div class="roomhead"><strong>Prostor ${roomCount}</strong><button class="danger" type="button" onclick="this.closest('.room').remove()">Ukloni</button></div>
+    <div class="roomhead"><strong>Prostor ${roomCount}</strong><button class="danger" type="button" onclick="this.closest('.room').remove();sumRoomMinutes()">Ukloni</button></div>
     <label>Vrsta prostora</label>
     <select class="rtype">${roomTypes.map(x=>`<option ${data.type===x?'selected':''}>${x}</option>`).join('')}</select>
     <div class="grid">
       <div><label>Broj prostorija</label><input class="rcount" type="number" min="1" value="${data.count||1}"></div>
       <div><label>Procjena m²</label><input class="rm2" type="number" min="0" value="${data.m2||''}"></div>
     </div>
+    <div class="grid">
+      <div><label>Broj kanti za smeće</label><input class="rbins" type="number" min="0" step="1" value="${data.bins||''}" oninput="calc()"></div>
+      <div><label>Broj prozora</label><input class="rwindows" type="number" min="0" step="1" value="${data.windows||''}" oninput="calc()"></div>
+    </div>
     <label>Podna obloga</label><input class="rfloor" value="${data.floor||''}" placeholder="pločice, parket, tepih...">
     <label>Što se ovdje čisti / posebnosti</label><textarea class="rnotes">${data.notes||''}</textarea>
-    <label>Procjena vremena za ovaj prostor (min)</label><input class="rminutes" type="number" min="0" step="5" value="${data.minutes||''}">
+    <label>Procjena vremena za ovaj prostor (min)</label><input class="rminutes" type="number" min="0" step="5" value="${data.minutes||''}" oninput="sumRoomMinutes()">
   `;
-  document.getElementById('rooms').appendChild(box);
+  document.getElementById('rooms').appendChild(box); sumRoomMinutes();
 }
 function getRooms(){
   return [...document.querySelectorAll('.room')].map(r=>({
     type:r.querySelector('.rtype').value,
     count:r.querySelector('.rcount').value,
     m2:r.querySelector('.rm2').value,
+    bins:r.querySelector('.rbins')?.value||'',
+    windows:r.querySelector('.rwindows')?.value||'',
     floor:r.querySelector('.rfloor').value,
     notes:r.querySelector('.rnotes').value,
     minutes:r.querySelector('.rminutes').value
   }));
+}
+function sumRoomMinutes(){
+  const total=[...document.querySelectorAll('.rminutes')].reduce((sum,x)=>sum+(parseFloat(x.value)||0),0);
+  const f=document.getElementById('minute');
+  if(f) f.value=total || '';
+  calc();
 }
 function checked(cls){return [...document.querySelectorAll(cls+':checked')].map(x=>x.value)}
 function val(id){return document.getElementById(id).value}
@@ -274,11 +293,46 @@ function exportCSV(){
     ['Procjena minuta',d.minute],['Priprema + put min',d.realextra],['Broj radnika',d.radnika],['Satnica €',d.satnica],
     ['Zaključak',d.zakljucak],[],['PROSTORI',''],
     ...d.rooms.flatMap((r,i)=>[
-      ['Prostor '+(i+1)+' - vrsta',r.type],['Broj prostorija',r.count],['m²',r.m2],['Pod',r.floor],['Posebnosti',r.notes],['Minute',r.minutes]
+      ['Prostor '+(i+1)+' - vrsta',r.type],['Broj prostorija',r.count],['m²',r.m2],['Broj kanti',r.bins],['Broj prozora',r.windows],['Pod',r.floor],['Posebnosti',r.notes],['Minute',r.minutes]
     ])
   ];
   downloadText('\uFEFF'+rows.map(r=>r.map(csvEscape).join(';')).join('\n'),'text/csv;charset=utf-8','CG-procjena-'+safeName(d.objekt)+'.csv')
 }
+
+async function shareByEmail(){
+  const d=data();
+  const rows=[
+    ['Polje','Vrijednost'],
+    ['Objekt',d.objekt],['Datum',d.datum],['Kontakt',d.kontakt],['Adresa',d.adresa],['Ukupno m²',d.m2],
+    ['Etaže',d.etaze],['Dolazaka tjedno',d.dolazaka],['Termin',d.termin],
+    ['Procjena minuta',d.minute],['Priprema + put min',d.realextra],['Broj radnika',d.radnika],['Satnica €',d.satnica],
+    [],['PROSTORI',''],
+    ...d.rooms.flatMap((r,i)=>[
+      ['Prostor '+(i+1)+' - vrsta',r.type],['Broj prostorija',r.count],['m²',r.m2],
+      ['Broj kanti',r.bins],['Broj prozora',r.windows],['Pod',r.floor],['Posebnosti',r.notes],['Minute',r.minutes]
+    ])
+  ];
+  const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(';')).join('\n');
+  const file=new File([csv],'CG-procjena-'+safeName(d.objekt)+'.csv',{type:'text/csv;charset=utf-8'});
+  const bins=(d.rooms||[]).reduce((a,r)=>a+(parseInt(r.bins)||0),0);
+  const wins=(d.rooms||[]).reduce((a,r)=>a+(parseInt(r.windows)||0),0);
+  const subject='Clean Green · Procjena poslovnog prostora · '+(d.objekt||'objekt');
+  const body=[
+    'Clean Green · Procjena poslovnog prostora','',
+    'Objekt: '+(d.objekt||''),'Datum: '+(d.datum||''),'Adresa: '+(d.adresa||''),
+    'Ukupno m²: '+(d.m2||''),'Dolazaka tjedno: '+(d.dolazaka||''),
+    'Procjena rada po dolasku: '+(d.minute||0)+' min',
+    'Ukupno kanti: '+bins,'Ukupno prozora: '+wins
+  ].join('\n');
+  try{
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      await navigator.share({title:subject,text:body,files:[file]});
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
 function calc(){
   const mins=(parseFloat(val('minute'))||0)+(parseFloat(val('realextra'))||0);
   const visits=parseFloat(val('dolazaka'))||0;
@@ -287,9 +341,13 @@ function calc(){
   document.getElementById('realTime').textContent=Math.floor(mins/60)+' h '+String(Math.round(mins%60)).padStart(2,'0')+' min';
   document.getElementById('monthTime').textContent=monthlyHours.toFixed(1).replace('.',',')+' h';
   document.getElementById('monthValue').textContent=(monthlyHours*rate).toLocaleString('hr-HR',{style:'currency',currency:'EUR'});
+  const bins=[...document.querySelectorAll('.rbins')].reduce((a,x)=>a+(parseInt(x.value)||0),0);
+  const wins=[...document.querySelectorAll('.rwindows')].reduce((a,x)=>a+(parseInt(x.value)||0),0);
+  const bt=document.getElementById('binTotal'), wt=document.getElementById('windowTotal');
+  if(bt) bt.textContent=bins; if(wt) wt.textContent=wins;
 }
 document.getElementById('datum').valueAsDate=new Date();
-addRoom({type:"Ured"}); addRoom({type:"Sanitarni čvor"}); calc();
+addRoom({type:"Ured"}); addRoom({type:"Sanitarni čvor"}); sumRoomMinutes(); calc();
 </script>
 </body>
 </html>
